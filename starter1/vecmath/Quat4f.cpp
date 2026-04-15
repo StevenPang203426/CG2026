@@ -1,3 +1,12 @@
+/*
+ * Quat4f.cpp 实现说明（中文注释版）
+ * - 本文件实现四元数代数、旋转表达以及插值曲线相关算法。
+ * - normalize/conjugate/inverse 对应旋转计算中的标准四元数操作。
+ * - log()/exp() 支持将旋转映射到切空间并回到单位球面。
+ * - slerp/squad/cubicInterpolate 提供从线性到高阶的姿态插值能力。
+ * - fromRotationMatrix()/fromRotatedBasis() 支持矩阵与基向量到四元数的转换。
+ */
+
 #define _USE_MATH_DEFINES
 #include <cmath>
 #ifndef M_PI
@@ -19,6 +28,7 @@ const Quat4f Quat4f::ZERO = Quat4f( 0, 0, 0, 0 );
 // static
 const Quat4f Quat4f::IDENTITY = Quat4f( 1, 0, 0, 0 );
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f::Quat4f()
 {
 	m_elements[ 0 ] = 0;
@@ -27,6 +37,7 @@ Quat4f::Quat4f()
 	m_elements[ 3 ] = 0;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f::Quat4f( float w, float x, float y, float z )
 {
 	m_elements[ 0 ] = w;
@@ -35,6 +46,7 @@ Quat4f::Quat4f( float w, float x, float y, float z )
 	m_elements[ 3 ] = z;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f::Quat4f( const Quat4f& rq )
 {
 	m_elements[ 0 ] = rq.m_elements[ 0 ];
@@ -43,6 +55,7 @@ Quat4f::Quat4f( const Quat4f& rq )
 	m_elements[ 3 ] = rq.m_elements[ 3 ];
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f& Quat4f::operator = ( const Quat4f& rq )
 {
 	if( this != ( &rq ) )
@@ -55,6 +68,7 @@ Quat4f& Quat4f::operator = ( const Quat4f& rq )
     return( *this );
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f::Quat4f( const Vector3f& v )
 {
 	m_elements[ 0 ] = 0;
@@ -63,6 +77,7 @@ Quat4f::Quat4f( const Vector3f& v )
 	m_elements[ 3 ] = v[ 2 ];
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f::Quat4f( const Vector4f& v )
 {
 	m_elements[ 0 ] = v[ 0 ];
@@ -71,36 +86,43 @@ Quat4f::Quat4f( const Vector4f& v )
 	m_elements[ 3 ] = v[ 3 ];
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 const float& Quat4f::operator [] ( int i ) const
 {
 	return m_elements[ i ];
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 float& Quat4f::operator [] ( int i )
 {
 	return m_elements[ i ];
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 float Quat4f::w() const
 {
 	return m_elements[ 0 ];
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 float Quat4f::x() const
 {
 	return m_elements[ 1 ];
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 float Quat4f::y() const
 {
 	return m_elements[ 2 ];
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 float Quat4f::z() const
 {
 	return m_elements[ 3 ];
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Vector3f Quat4f::xyz() const
 {
 	return Vector3f
@@ -111,6 +133,7 @@ Vector3f Quat4f::xyz() const
 	);
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Vector4f Quat4f::wxyz() const
 {
 	return Vector4f
@@ -122,11 +145,13 @@ Vector4f Quat4f::wxyz() const
 	);
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 float Quat4f::abs() const
 {
 	return sqrt( absSquared() );	
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 float Quat4f::absSquared() const
 {
 	return
@@ -138,6 +163,7 @@ float Quat4f::absSquared() const
 	);
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 void Quat4f::normalize()
 {
 	float reciprocalAbs = 1.f / abs();
@@ -148,6 +174,7 @@ void Quat4f::normalize()
 	m_elements[ 3 ] *= reciprocalAbs;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f Quat4f::normalized() const
 {
 	Quat4f q( *this );
@@ -155,6 +182,7 @@ Quat4f Quat4f::normalized() const
 	return q;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 void Quat4f::conjugate()
 {
 	m_elements[ 1 ] = -m_elements[ 1 ];
@@ -162,6 +190,7 @@ void Quat4f::conjugate()
 	m_elements[ 3 ] = -m_elements[ 3 ];
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f Quat4f::conjugated() const
 {
 	return Quat4f
@@ -173,6 +202,7 @@ Quat4f Quat4f::conjugated() const
 	);
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 void Quat4f::invert()
 {
 	Quat4f inverse = conjugated() * ( 1.0f / absSquared() );
@@ -183,12 +213,14 @@ void Quat4f::invert()
 	m_elements[ 3 ] = inverse.m_elements[ 3 ];
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f Quat4f::inverse() const
 {
 	return conjugated() * ( 1.0f / absSquared() );
 }
 
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f Quat4f::log() const
 {
 	float len =
@@ -210,6 +242,7 @@ Quat4f Quat4f::log() const
 	}
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f Quat4f::exp() const
 {
 	float theta =
@@ -231,6 +264,7 @@ Quat4f Quat4f::exp() const
 	}
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Vector3f Quat4f::getAxisAngle( float* radiansOut )
 {
 	float theta = acos( w() ) * 2;
@@ -246,6 +280,7 @@ Vector3f Quat4f::getAxisAngle( float* radiansOut )
 	);
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 void Quat4f::setAxisAngle( float radians, const Vector3f& axis )
 {
 	m_elements[ 0 ] = cos( radians / 2 );
@@ -259,6 +294,7 @@ void Quat4f::setAxisAngle( float radians, const Vector3f& axis )
 	m_elements[ 3 ] = axis.z() * sinHalfTheta * reciprocalVectorNorm;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 void Quat4f::print()
 {
 	printf( "< %.4f + %.4f i + %.4f j + %.4f k >\n",
@@ -266,6 +302,7 @@ void Quat4f::print()
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 float Quat4f::dot( const Quat4f& q0, const Quat4f& q1 )
 {
 	return
@@ -278,12 +315,14 @@ float Quat4f::dot( const Quat4f& q0, const Quat4f& q1 )
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f Quat4f::lerp( const Quat4f& q0, const Quat4f& q1, float alpha )
 {
 	return( ( q0 + alpha * ( q1 - q0 ) ).normalized() );
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f Quat4f::slerp( const Quat4f& a, const Quat4f& b, float t, bool allowFlip )
 {
 	float cosAngle = Quat4f::dot( a, b );
@@ -316,6 +355,7 @@ Quat4f Quat4f::slerp( const Quat4f& a, const Quat4f& b, float t, bool allowFlip 
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f Quat4f::squad( const Quat4f& a, const Quat4f& tanA, const Quat4f& tanB, const Quat4f& b, float t )
 {
 	Quat4f ab = Quat4f::slerp( a, b, t );
@@ -324,6 +364,7 @@ Quat4f Quat4f::squad( const Quat4f& a, const Quat4f& tanA, const Quat4f& tanB, c
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f Quat4f::cubicInterpolate( const Quat4f& q0, const Quat4f& q1, const Quat4f& q2, const Quat4f& q3, float t )
 {
 	// geometric construction:
@@ -345,6 +386,7 @@ Quat4f Quat4f::cubicInterpolate( const Quat4f& q0, const Quat4f& q1, const Quat4
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f Quat4f::logDifference( const Quat4f& a, const Quat4f& b )
 {
 	Quat4f diff = a.inverse() * b;
@@ -353,6 +395,7 @@ Quat4f Quat4f::logDifference( const Quat4f& a, const Quat4f& b )
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f Quat4f::squadTangent( const Quat4f& before, const Quat4f& center, const Quat4f& after )
 {
 	Quat4f l1 = Quat4f::logDifference( center, before );
@@ -369,6 +412,7 @@ Quat4f Quat4f::squadTangent( const Quat4f& before, const Quat4f& center, const Q
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f Quat4f::fromRotationMatrix( const Matrix3f& m )
 {
 	float x;
@@ -422,12 +466,14 @@ Quat4f Quat4f::fromRotationMatrix( const Matrix3f& m )
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f Quat4f::fromRotatedBasis( const Vector3f& x, const Vector3f& y, const Vector3f& z )
 {
 	return fromRotationMatrix( Matrix3f( x, y, z ) );
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f Quat4f::randomRotation( float u0, float u1, float u2 )
 {
 	float z = u0;
@@ -448,6 +494,7 @@ Quat4f Quat4f::randomRotation( float u0, float u1, float u2 )
 // Operators
 //////////////////////////////////////////////////////////////////////////
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f operator + ( const Quat4f& q0, const Quat4f& q1 )
 {
 	return Quat4f
@@ -459,6 +506,7 @@ Quat4f operator + ( const Quat4f& q0, const Quat4f& q1 )
 	);
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f operator - ( const Quat4f& q0, const Quat4f& q1 )
 {
 	return Quat4f
@@ -470,6 +518,7 @@ Quat4f operator - ( const Quat4f& q0, const Quat4f& q1 )
 	);
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f operator * ( const Quat4f& q0, const Quat4f& q1 )
 {
 	return Quat4f
@@ -481,6 +530,7 @@ Quat4f operator * ( const Quat4f& q0, const Quat4f& q1 )
 	);
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f operator * ( float f, const Quat4f& q )
 {
 	return Quat4f
@@ -492,6 +542,7 @@ Quat4f operator * ( float f, const Quat4f& q )
 	);
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Quat4f operator * ( const Quat4f& q, float f )
 {
 	return Quat4f

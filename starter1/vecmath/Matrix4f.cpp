@@ -1,3 +1,12 @@
+/*
+ * Matrix4f.cpp 实现说明（中文注释版）
+ * - 本文件实现 4x4 齐次矩阵完整能力：代数运算、逆、转置及图形学构造。
+ * - 变换构造覆盖平移、旋转、缩放、lookAt、正交投影、透视投影等。
+ * - 子矩阵接口（2x2/3x3）服务于行列式与逆矩阵分块计算。
+ * - 投影相关函数同时考虑 OpenGL/DirectX 深度区间差异。
+ * - randomRotation() 基于均匀采样生成随机旋转矩阵，用于随机姿态场景。
+ */
+
 #include "Matrix4f.h"
 
 #include <cassert>
@@ -11,6 +20,7 @@
 #include "Vector3f.h"
 #include "Vector4f.h"
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f::Matrix4f( float fill )
 {
 	for( int i = 0; i < 16; ++i )
@@ -19,6 +29,7 @@ Matrix4f::Matrix4f( float fill )
 	}
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f::Matrix4f( float m00, float m01, float m02, float m03,
 				   float m10, float m11, float m12, float m13,
 				   float m20, float m21, float m22, float m23,
@@ -45,6 +56,7 @@ Matrix4f::Matrix4f( float m00, float m01, float m02, float m03,
 	m_elements[ 15 ] = m33;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f& Matrix4f::operator/=(float d)
 {
 	for(int ii=0;ii<16;ii++){
@@ -53,6 +65,7 @@ Matrix4f& Matrix4f::operator/=(float d)
 	return *this;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f::Matrix4f( const Vector4f& v0, const Vector4f& v1, const Vector4f& v2, const Vector4f& v3, bool setColumns )
 {
 	if( setColumns )
@@ -71,11 +84,13 @@ Matrix4f::Matrix4f( const Vector4f& v0, const Vector4f& v1, const Vector4f& v2, 
 	}
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f::Matrix4f( const Matrix4f& rm )
 {
 	memcpy( m_elements, rm.m_elements, sizeof(m_elements) );
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f& Matrix4f::operator = ( const Matrix4f& rm )
 {
 	if( this != &rm )
@@ -85,16 +100,19 @@ Matrix4f& Matrix4f::operator = ( const Matrix4f& rm )
 	return *this;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 const float& Matrix4f::operator () ( int i, int j ) const
 {
 	return m_elements[ j * 4 + i ];
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 float& Matrix4f::operator () ( int i, int j )
 {
 	return m_elements[ j * 4 + i ];
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Vector4f Matrix4f::getRow( int i ) const
 {
 	return Vector4f
@@ -106,6 +124,7 @@ Vector4f Matrix4f::getRow( int i ) const
 	);
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 void Matrix4f::setRow( int i, const Vector4f& v )
 {
 	m_elements[ i ] = v.x();
@@ -114,6 +133,7 @@ void Matrix4f::setRow( int i, const Vector4f& v )
 	m_elements[ i + 12 ] = v.w();
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Vector4f Matrix4f::getCol( int j ) const
 {
 	int colStart = 4 * j;
@@ -127,6 +147,7 @@ Vector4f Matrix4f::getCol( int j ) const
 	);
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 void Matrix4f::setCol( int j, const Vector4f& v )
 {
 	int colStart = 4 * j;
@@ -137,6 +158,7 @@ void Matrix4f::setCol( int j, const Vector4f& v )
 	m_elements[ colStart + 3 ] = v.w();
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix2f Matrix4f::getSubmatrix2x2( int i0, int j0 ) const
 {
 	Matrix2f out;
@@ -152,6 +174,7 @@ Matrix2f Matrix4f::getSubmatrix2x2( int i0, int j0 ) const
 	return out;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix3f Matrix4f::getSubmatrix3x3( int i0, int j0 ) const
 {
 	Matrix3f out;
@@ -167,6 +190,7 @@ Matrix3f Matrix4f::getSubmatrix3x3( int i0, int j0 ) const
 	return out;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 void Matrix4f::setSubmatrix2x2( int i0, int j0, const Matrix2f& m )
 {
 	for( int i = 0; i < 2; ++i )
@@ -178,6 +202,7 @@ void Matrix4f::setSubmatrix2x2( int i0, int j0, const Matrix2f& m )
 	}
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 void Matrix4f::setSubmatrix3x3( int i0, int j0, const Matrix3f& m )
 {
 	for( int i = 0; i < 3; ++i )
@@ -189,6 +214,7 @@ void Matrix4f::setSubmatrix3x3( int i0, int j0, const Matrix3f& m )
 	}
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 float Matrix4f::determinant() const
 {
 	float m00 = m_elements[ 0 ];
@@ -219,6 +245,7 @@ float Matrix4f::determinant() const
 	return( m00 * cofactor00 + m01 * cofactor01 + m02 * cofactor02 + m03 * cofactor03 );
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f Matrix4f::inverse( bool* pbIsSingular, float epsilon ) const
 {
 	float m00 = m_elements[ 0 ];
@@ -291,6 +318,7 @@ Matrix4f Matrix4f::inverse( bool* pbIsSingular, float epsilon ) const
 	}
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 void Matrix4f::transpose()
 {
 	float temp;
@@ -306,6 +334,7 @@ void Matrix4f::transpose()
 	}
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f Matrix4f::transposed() const
 {
 	Matrix4f out;
@@ -320,17 +349,20 @@ Matrix4f Matrix4f::transposed() const
 	return out;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f::operator float* ()
 {
 	return m_elements;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f::operator const float* ()const
 {
 	return m_elements;
 }
 
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 void Matrix4f::print()
 {
 	printf( "[ %.4f %.4f %.4f %.4f ]\n[ %.4f %.4f %.4f %.4f ]\n[ %.4f %.4f %.4f %.4f ]\n[ %.4f %.4f %.4f %.4f ]\n",
@@ -341,6 +373,7 @@ void Matrix4f::print()
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f Matrix4f::ones()
 {
 	Matrix4f m;
@@ -353,6 +386,7 @@ Matrix4f Matrix4f::ones()
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f Matrix4f::identity()
 {
 	Matrix4f m;
@@ -366,6 +400,7 @@ Matrix4f Matrix4f::identity()
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f Matrix4f::translation( float x, float y, float z )
 {
 	return Matrix4f
@@ -378,6 +413,7 @@ Matrix4f Matrix4f::translation( float x, float y, float z )
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f Matrix4f::translation( const Vector3f& rTranslation )
 {
 	return Matrix4f
@@ -390,6 +426,7 @@ Matrix4f Matrix4f::translation( const Vector3f& rTranslation )
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f Matrix4f::rotateX( float radians )
 {
 	float c = cos( radians );
@@ -405,6 +442,7 @@ Matrix4f Matrix4f::rotateX( float radians )
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f Matrix4f::rotateY( float radians )
 {
 	float c = cos( radians );
@@ -420,6 +458,7 @@ Matrix4f Matrix4f::rotateY( float radians )
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f Matrix4f::rotateZ( float radians )
 {
 	float c = cos( radians );
@@ -435,6 +474,7 @@ Matrix4f Matrix4f::rotateZ( float radians )
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f Matrix4f::rotation( const Vector3f& rDirection, float radians )
 {
 	Vector3f normalizedDirection = rDirection.normalized();
@@ -456,6 +496,7 @@ Matrix4f Matrix4f::rotation( const Vector3f& rDirection, float radians )
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f Matrix4f::rotation( const Quat4f& q )
 {
 	Quat4f qq = q.normalized();
@@ -483,6 +524,7 @@ Matrix4f Matrix4f::rotation( const Quat4f& q )
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f Matrix4f::scaling( float sx, float sy, float sz )
 {
 	return Matrix4f
@@ -495,6 +537,7 @@ Matrix4f Matrix4f::scaling( float sx, float sy, float sz )
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f Matrix4f::uniformScaling( float s )
 {
 	return Matrix4f
@@ -507,12 +550,14 @@ Matrix4f Matrix4f::uniformScaling( float s )
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f Matrix4f::randomRotation( float u0, float u1, float u2 )
 {
 	return Matrix4f::rotation( Quat4f::randomRotation( u0, u1, u2 ) );
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f Matrix4f::lookAt( const Vector3f& eye, const Vector3f& center, const Vector3f& up )
 {
 	// z is negative forward
@@ -533,6 +578,7 @@ Matrix4f Matrix4f::lookAt( const Vector3f& eye, const Vector3f& center, const Ve
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f Matrix4f::orthographicProjection( float width, float height, float zNear, float zFar, bool directX )
 {
 	Matrix4f m;
@@ -559,6 +605,7 @@ Matrix4f Matrix4f::orthographicProjection( float width, float height, float zNea
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f Matrix4f::orthographicProjection( float left, float right, float bottom, float top, float zNear, float zFar, bool directX )
 {
 	Matrix4f m;
@@ -585,6 +632,7 @@ Matrix4f Matrix4f::orthographicProjection( float left, float right, float bottom
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f Matrix4f::perspectiveProjection( float fLeft, float fRight,
 										 float fBottom, float fTop,
 										 float fZNear, float fZFar,
@@ -613,6 +661,7 @@ Matrix4f Matrix4f::perspectiveProjection( float fLeft, float fRight,
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f Matrix4f::perspectiveProjection( float fovYRadians, float aspect, float zNear, float zFar, bool directX )
 {
 	assert(zNear >= 0);
@@ -641,6 +690,7 @@ Matrix4f Matrix4f::perspectiveProjection( float fovYRadians, float aspect, float
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f Matrix4f::infinitePerspectiveProjection( float fLeft, float fRight,
 												 float fBottom, float fTop,
 												 float fZNear, bool directX )
@@ -673,6 +723,7 @@ Matrix4f Matrix4f::infinitePerspectiveProjection( float fLeft, float fRight,
 // Operators
 //////////////////////////////////////////////////////////////////////////
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Vector4f operator * ( const Matrix4f& m, const Vector4f& v )
 {
 	Vector4f output( 0, 0, 0, 0 );
@@ -688,6 +739,7 @@ Vector4f operator * ( const Matrix4f& m, const Vector4f& v )
 	return output;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f operator * ( const Matrix4f& x, const Matrix4f& y )
 {
 	Matrix4f product; // zeroes
@@ -705,6 +757,7 @@ Matrix4f operator * ( const Matrix4f& x, const Matrix4f& y )
 
 	return product;
 }
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f operator * (const Matrix4f& m, float f) {
 	Matrix4f product(m); // zeroes
 
@@ -717,6 +770,7 @@ Matrix4f operator * (const Matrix4f& m, float f) {
 	}
 	return product;
 }
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix4f operator * (float f, const Matrix4f& m) {
 	Matrix4f product(m); // zeroes
 

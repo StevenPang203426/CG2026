@@ -1,3 +1,12 @@
+/*
+ * Matrix3f.cpp 实现说明（中文注释版）
+ * - 本文件实现 3x3 矩阵基础操作、逆矩阵、旋转与缩放构造。
+ * - 通过 getSubmatrix2x2/setSubmatrix2x2 支撑代数余子式相关计算。
+ * - determinant()/inverse() 以经典线性代数公式实现，并提供奇异性判断。
+ * - rotation(axis, radians) 支持绕任意轴旋转，适用于局部姿态构造。
+ * - rotation(Quat4f) 将四元数旋转转换为等价矩阵表达。
+ */
+
 #include "Matrix3f.h"
 
 #include <cassert>
@@ -9,6 +18,7 @@
 #include "Quat4f.h"
 #include "Vector3f.h"
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix3f::Matrix3f( float fill )
 {
 	for( int i = 0; i < 9; ++i )
@@ -17,6 +27,7 @@ Matrix3f::Matrix3f( float fill )
 	}
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix3f::Matrix3f( float m00, float m01, float m02,
 				   float m10, float m11, float m12,
 				   float m20, float m21, float m22 )
@@ -34,6 +45,7 @@ Matrix3f::Matrix3f( float m00, float m01, float m02,
 	m_elements[ 8 ] = m22;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix3f::Matrix3f( const Vector3f& v0, const Vector3f& v1, const Vector3f& v2, bool setColumns )
 {
 	if( setColumns )
@@ -50,11 +62,13 @@ Matrix3f::Matrix3f( const Vector3f& v0, const Vector3f& v1, const Vector3f& v2, 
 	}
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix3f::Matrix3f( const Matrix3f& rm )
 {
 	memcpy( m_elements, rm.m_elements, sizeof(m_elements)  );
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix3f& Matrix3f::operator = ( const Matrix3f& rm )
 {
 	if( this != &rm )
@@ -64,16 +78,19 @@ Matrix3f& Matrix3f::operator = ( const Matrix3f& rm )
 	return *this;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 const float& Matrix3f::operator () ( int i, int j ) const
 {
 	return m_elements[ j * 3 + i ];
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 float& Matrix3f::operator () ( int i, int j )
 {
 	return m_elements[ j * 3 + i ];
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Vector3f Matrix3f::getRow( int i ) const
 {
 	return Vector3f
@@ -84,6 +101,7 @@ Vector3f Matrix3f::getRow( int i ) const
 	);
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 void Matrix3f::setRow( int i, const Vector3f& v )
 {
 	m_elements[ i ] = v.x();
@@ -91,6 +109,7 @@ void Matrix3f::setRow( int i, const Vector3f& v )
 	m_elements[ i + 6 ] = v.z();
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Vector3f Matrix3f::getCol( int j ) const
 {
 	int colStart = 3 * j;
@@ -103,6 +122,7 @@ Vector3f Matrix3f::getCol( int j ) const
 	);
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 void Matrix3f::setCol( int j, const Vector3f& v )
 {
 	int colStart = 3 * j;
@@ -112,6 +132,7 @@ void Matrix3f::setCol( int j, const Vector3f& v )
 	m_elements[ colStart + 2 ] = v.z();
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix2f Matrix3f::getSubmatrix2x2( int i0, int j0 ) const
 {
 	Matrix2f out;
@@ -127,6 +148,7 @@ Matrix2f Matrix3f::getSubmatrix2x2( int i0, int j0 ) const
 	return out;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 void Matrix3f::setSubmatrix2x2( int i0, int j0, const Matrix2f& m )
 {
 	for( int i = 0; i < 2; ++i )
@@ -138,6 +160,7 @@ void Matrix3f::setSubmatrix2x2( int i0, int j0, const Matrix2f& m )
 	}
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 float Matrix3f::determinant() const
 {
 	return Matrix3f::determinant3x3
@@ -148,6 +171,7 @@ float Matrix3f::determinant() const
 	);
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix3f Matrix3f::inverse( bool* pbIsSingular, float epsilon ) const
 {
 	float m00 = m_elements[ 0 ];
@@ -203,6 +227,7 @@ Matrix3f Matrix3f::inverse( bool* pbIsSingular, float epsilon ) const
 	}
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 void Matrix3f::transpose()
 {
 	float temp;
@@ -218,6 +243,7 @@ void Matrix3f::transpose()
 	}
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix3f Matrix3f::transposed() const
 {
 	Matrix3f out;
@@ -232,11 +258,13 @@ Matrix3f Matrix3f::transposed() const
 	return out;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix3f::operator float* ()
 {
 	return m_elements;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 void Matrix3f::print()
 {
 	printf( "[ %.4f %.4f %.4f ]\n[ %.4f %.4f %.4f ]\n[ %.4f %.4f %.4f ]\n",
@@ -246,6 +274,7 @@ void Matrix3f::print()
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 float Matrix3f::determinant3x3( float m00, float m01, float m02,
 							   float m10, float m11, float m12,
 							   float m20, float m21, float m22 )
@@ -259,6 +288,7 @@ float Matrix3f::determinant3x3( float m00, float m01, float m02,
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix3f Matrix3f::ones()
 {
 	Matrix3f m;
@@ -271,6 +301,7 @@ Matrix3f Matrix3f::ones()
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix3f Matrix3f::identity()
 {
 	Matrix3f m;
@@ -284,6 +315,7 @@ Matrix3f Matrix3f::identity()
 
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix3f Matrix3f::rotateX( float radians )
 {
 	float c = cos( radians );
@@ -298,6 +330,7 @@ Matrix3f Matrix3f::rotateX( float radians )
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix3f Matrix3f::rotateY( float radians )
 {
 	float c = cos( radians );
@@ -312,6 +345,7 @@ Matrix3f Matrix3f::rotateY( float radians )
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix3f Matrix3f::rotateZ( float radians )
 {
 	float c = cos( radians );
@@ -326,6 +360,7 @@ Matrix3f Matrix3f::rotateZ( float radians )
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix3f Matrix3f::scaling( float sx, float sy, float sz )
 {
 	return Matrix3f
@@ -337,6 +372,7 @@ Matrix3f Matrix3f::scaling( float sx, float sy, float sz )
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix3f Matrix3f::uniformScaling( float s )
 {
 	return Matrix3f
@@ -348,6 +384,7 @@ Matrix3f Matrix3f::uniformScaling( float s )
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix3f Matrix3f::rotation( const Vector3f& rDirection, float radians )
 {
 	Vector3f normalizedDirection = rDirection.normalized();
@@ -368,6 +405,7 @@ Matrix3f Matrix3f::rotation( const Vector3f& rDirection, float radians )
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix3f Matrix3f::rotation( const Quat4f& rq )
 {
 	Quat4f q = rq.normalized();
@@ -397,6 +435,7 @@ Matrix3f Matrix3f::rotation( const Quat4f& rq )
 // Operators
 //////////////////////////////////////////////////////////////////////////
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Vector3f operator * ( const Matrix3f& m, const Vector3f& v )
 {
 	Vector3f output( 0, 0, 0 );
@@ -412,6 +451,7 @@ Vector3f operator * ( const Matrix3f& m, const Vector3f& v )
 	return output;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix3f operator * ( const Matrix3f& x, const Matrix3f& y )
 {
 	Matrix3f product; // zeroes
@@ -430,6 +470,7 @@ Matrix3f operator * ( const Matrix3f& x, const Matrix3f& y )
 	return product;
 }
 // Scalar multiplication 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix3f operator * (const Matrix3f& m, float f) {
     Matrix3f product(m); // zeroes
 
@@ -442,6 +483,7 @@ Matrix3f operator * (const Matrix3f& m, float f) {
     }
     return product;
 }
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix3f operator * (float f, const Matrix3f& m) {
     Matrix3f product(m); // zeroes
     for (int i = 0; i < 3; ++i)

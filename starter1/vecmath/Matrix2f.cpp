@@ -1,3 +1,12 @@
+/*
+ * Matrix2f.cpp 实现说明（中文注释版）
+ * - 本文件实现 2x2 矩阵的所有成员函数与相关全局运算符。
+ * - 数据按列主序存储：第 j 列第 i 行映射到 m_elements[j * 2 + i]。
+ * - inverse() 使用 2x2 逆矩阵显式公式，并通过 epsilon 判断奇异矩阵。
+ * - rotation(degrees) 构造二维旋转矩阵，角度输入会在实现中转换为弧度。
+ * - Matrix2f * Vector2f 与 Matrix2f * Matrix2f 保持数学语义一致。
+ */
+
 #include "Matrix2f.h"
 
 #include <cassert>
@@ -7,6 +16,7 @@
 
 #include "Vector2f.h"
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix2f::Matrix2f( float fill )
 {
 	for( int i = 0; i < 4; ++i )
@@ -15,6 +25,7 @@ Matrix2f::Matrix2f( float fill )
 	}
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix2f::Matrix2f( float m00, float m01,
 				   float m10, float m11 )
 {
@@ -25,6 +36,7 @@ Matrix2f::Matrix2f( float m00, float m01,
 	m_elements[ 3 ] = m11;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix2f::Matrix2f( const Vector2f& v0, const Vector2f& v1, bool setColumns )
 {
 	if( setColumns )
@@ -39,11 +51,13 @@ Matrix2f::Matrix2f( const Vector2f& v0, const Vector2f& v1, bool setColumns )
 	}
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix2f::Matrix2f( const Matrix2f& rm )
 {
 	memcpy( m_elements, rm.m_elements, sizeof(m_elements));
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix2f& Matrix2f::operator = ( const Matrix2f& rm )
 {
 	if( this != &rm )
@@ -53,16 +67,19 @@ Matrix2f& Matrix2f::operator = ( const Matrix2f& rm )
 	return *this;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 const float& Matrix2f::operator () ( int i, int j ) const
 {
 	return m_elements[ j * 2 + i ];
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 float& Matrix2f::operator () ( int i, int j )
 {
 	return m_elements[ j * 2 + i ];
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Vector2f Matrix2f::getRow( int i ) const
 {
 	return Vector2f
@@ -72,12 +89,14 @@ Vector2f Matrix2f::getRow( int i ) const
 	);
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 void Matrix2f::setRow( int i, const Vector2f& v )
 {
 	m_elements[ i ] = v.x();
 	m_elements[ i + 2 ] = v.y();
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Vector2f Matrix2f::getCol( int j ) const
 {
 	int colStart = 2 * j;
@@ -89,6 +108,7 @@ Vector2f Matrix2f::getCol( int j ) const
 	);
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 void Matrix2f::setCol( int j, const Vector2f& v )
 {
 	int colStart = 2 * j;
@@ -97,6 +117,7 @@ void Matrix2f::setCol( int j, const Vector2f& v )
 	m_elements[ colStart + 1 ] = v.y();
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 float Matrix2f::determinant()
 {
 	return Matrix2f::determinant2x2
@@ -106,6 +127,7 @@ float Matrix2f::determinant()
 	);
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix2f Matrix2f::inverse( bool* pbIsSingular, float epsilon )
 {
 	float determinant = m_elements[ 0 ] * m_elements[ 3 ] - m_elements[ 2 ] * m_elements[ 1 ];
@@ -136,6 +158,7 @@ Matrix2f Matrix2f::inverse( bool* pbIsSingular, float epsilon )
 	}
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 void Matrix2f::transpose()
 {
 	float m01 = ( *this )( 0, 1 );
@@ -145,6 +168,7 @@ void Matrix2f::transpose()
 	( *this )( 1, 0 ) = m01;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix2f Matrix2f::transposed() const
 {
 	return Matrix2f
@@ -155,11 +179,13 @@ Matrix2f Matrix2f::transposed() const
 
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix2f::operator float* ()
 {
 	return m_elements;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 void Matrix2f::print()
 {
 	printf( "[ %.4f %.4f ]\n[ %.4f %.4f ]\n",
@@ -168,6 +194,7 @@ void Matrix2f::print()
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 float Matrix2f::determinant2x2( float m00, float m01,
 							   float m10, float m11 )
 {
@@ -175,6 +202,7 @@ float Matrix2f::determinant2x2( float m00, float m01,
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix2f Matrix2f::ones()
 {
 	Matrix2f m;
@@ -187,6 +215,7 @@ Matrix2f Matrix2f::ones()
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix2f Matrix2f::identity()
 {
 	Matrix2f m;
@@ -198,6 +227,7 @@ Matrix2f Matrix2f::identity()
 }
 
 // static
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix2f Matrix2f::rotation( float degrees )
 {
 	float c = cos( degrees );
@@ -214,6 +244,7 @@ Matrix2f Matrix2f::rotation( float degrees )
 // Operators
 //////////////////////////////////////////////////////////////////////////
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix2f operator * ( float f, const Matrix2f& m )
 {
 	Matrix2f output;
@@ -229,11 +260,13 @@ Matrix2f operator * ( float f, const Matrix2f& m )
 	return output;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix2f operator * ( const Matrix2f& m, float f )
 {
 	return f * m;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Vector2f operator * ( const Matrix2f& m, const Vector2f& v )
 {
 	Vector2f output( 0, 0 );
@@ -249,6 +282,7 @@ Vector2f operator * ( const Matrix2f& m, const Vector2f& v )
 	return output;
 }
 
+// 中文注释：该函数为实现层逻辑，负责完成对应数学运算或对象状态变更；输入输出含义与签名保持一致。
 Matrix2f operator * ( const Matrix2f& x, const Matrix2f& y )
 {
 	Matrix2f product; // zeroes
