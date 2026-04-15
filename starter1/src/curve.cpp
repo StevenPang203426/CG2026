@@ -14,8 +14,89 @@ inline bool approx(const Vector3f& lhs, const Vector3f& rhs)
 	return (lhs - rhs).absSquared() < eps;
 }
 
+// Compute a single Bezier segment (p0,p1,p2,p3), appending to 'curve'.
+// If 'firstSeg' is true, include t=0; otherwise start from t=1/steps.
+// prevB is the binormal from the previous point (updated in-place).
+// firstEver: whether this is the very first point of the whole curve.
+void evalBezierSegment(
+    const Vector3f& p0, const Vector3f& p1,
+    const Vector3f& p2, const Vector3f& p3,
+    unsigned steps, bool firstSeg,
+    Vector3f& prevB, bool& firstEver,
+    Curve& curve)
+{
+    unsigned start = firstSeg ? 0 : 1;
+    for (unsigned i = start; i <= steps; i++) {
+        float t = float(i) / float(steps);
+        float mt = 1.0f - t;
 
+        // Position via Bernstein basis
+        Vector3f V = mt*mt*mt*p0
+                   + 3.0f*mt*mt*t*p1
+                   + 3.0f*mt*t*t*p2
+                   + t*t*t*p3;
+
+        // Tangent (derivative)
+        Vector3f dV = 3.0f*(mt*mt*(p1-p0)
+                           + 2.0f*mt*t*(p2-p1)
+                           + t*t*(p3-p2));
+        Vector3f T = dV.normalized();
+
+        // Initialize prevB on the very first point
+        if (firstEver) {
+            Vector3f arb(0.0f, 0.0f, 1.0f);
+            if (fabs(Vector3f::dot(arb, T)) > 0.99f)
+                arb = Vector3f(0.0f, 1.0f, 0.0f);
+            // Set prevB perpendicular to T
+            prevB = Vector3f::cross(arb, T).normalized();
+            firstEver = false;
+        }
+
+        Vector3f N = Vector3f::cross(prevB, T).normalized();
+        Vector3f B = Vector3f::cross(T, N).normalized();
+        prevB = B;
+
+        CurvePoint cp;
+        cp.V = V; cp.T = T; cp.N = N; cp.B = B;
+        curve.push_back(cp);
+    }
 }
+
+// Apply closed-curve correction (Slide 29-30):
+// If the curve is closed (start/end positions and tangents match),
+// linearly interpolate a rotation around T to close the frame gap.
+void fixClosedCurve(Curve& curve)
+{
+    if (curve.size() < 2) return;
+
+    const CurvePoint& first = curve.front();
+    const CurvePoint& last  = curve.back();
+
+    // Check closure: positions and tangents must approximately match
+    const float eps = 1e-4f;
+    if ((first.V - last.V).absSquared() > eps) return;
+    if (fabs(Vector3f::dot(first.T, last.T) - 1.0f) > eps) return;
+
+    // Signed angle alpha from first.N to last.N around first.T
+    float cosA = Vector3f::dot(first.N, last.N);
+    cosA = fmax(-1.0f, fmin(1.0f, cosA));
+    float sinA = Vector3f::dot(Vector3f::cross(first.N, last.N), first.T);
+    float alpha = atan2(sinA, cosA);
+
+    if (fabs(alpha) < 1e-6f) return;
+
+    int total = (int)curve.size();
+    for (int i = 0; i < total; i++) {
+        float theta = alpha * float(i) / float(total - 1);
+        float cosT = cos(theta), sinT = sin(theta);
+        Vector3f Ni = curve[i].N;
+        Vector3f Bi = curve[i].B;
+        curve[i].N = cosT*Ni + sinT*Bi;
+        curve[i].B = -sinT*Ni + cosT*Bi;
+    }
+}
+
+} // namespace
 
 
 Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
@@ -27,36 +108,22 @@ Curve evalBezier(const vector< Vector3f >& P, unsigned steps)
 		exit(0);
 	}
 
-	// TODO:
-	// You should implement this function so that it returns a Curve
-	// (e.g., a vector< CurvePoint >).  The variable "steps" tells you
-	// the number of points to generate on each piece of the spline.
-	// At least, that's how the sample solution is implemented and how
-	// the SWP files are written.  But you are free to interpret this
-	// variable however you want, so long as you can control the
-	// "resolution" of the discretized spline curve with it.
+    int numSegments = (int)(P.size() - 1) / 3;
+    Curve curve;
+    curve.reserve(numSegments * steps + 1);
 
-	// Make sure that this function computes all the appropriate
-	// Vector3fs for each CurvePoint: V,T,N,B.
-	// [NBT] should be unit and orthogonal.
+    Vector3f prevB;
+    bool firstEver = true;
 
-	// Also note that you may assume that all Bezier curves that you
-	// receive have G1 continuity.  Otherwise, the TNB will not be
-	// be defined at points where this does not hold.
+    for (int seg = 0; seg < numSegments; seg++) {
+        evalBezierSegment(
+            P[3*seg], P[3*seg+1], P[3*seg+2], P[3*seg+3],
+            steps, (seg == 0),
+            prevB, firstEver, curve);
+    }
 
-	cerr << "\t>>> evalBezier has been called with the following input:" << endl;
-
-	cerr << "\t>>> Control points (type vector< Vector3f >): " << endl;
-	for (int i = 0; i < (int)P.size(); ++i)
-	{
-		cerr << "\t>>> " << P[i] << endl;
-	}
-
-	cerr << "\t>>> Steps (type steps): " << steps << endl;
-	cerr << "\t>>> Returning empty curve." << endl;
-
-	// Right now this will just return this empty curve.
-	return Curve();
+    fixClosedCurve(curve);
+	return curve;
 }
 
 Curve evalBspline(const vector< Vector3f >& P, unsigned steps)
@@ -68,24 +135,34 @@ Curve evalBspline(const vector< Vector3f >& P, unsigned steps)
 		exit(0);
 	}
 
-	// TODO:
-	// It is suggested that you implement this function by changing
-	// basis from B-spline to Bezier.  That way, you can just call
-	// your evalBezier function.
+    // Convert each B-spline segment to Bezier control points, then call evalBezier.
+    // For segment i with B-spline points b0=P[i], b1=P[i+1], b2=P[i+2], b3=P[i+3]:
+    //   c0 = (b0 + 4*b1 + b2) / 6      (shared endpoint with previous segment's c3)
+    //   c1 = (2*b1 + b2) / 3
+    //   c2 = (b1 + 2*b2) / 3
+    //   c3 = (b1 + 4*b2 + b3) / 6      (= next segment's c0)
+    int n = (int)P.size() - 3; // number of B-spline segments
+    vector<Vector3f> bezPts;
+    bezPts.reserve(3*n + 1);
 
-	cerr << "\t>>> evalBSpline has been called with the following input:" << endl;
+    for (int i = 0; i < n; i++) {
+        const Vector3f& b0 = P[i];
+        const Vector3f& b1 = P[i+1];
+        const Vector3f& b2 = P[i+2];
+        const Vector3f& b3 = P[i+3];
 
-	cerr << "\t>>> Control points (type vector< Vector3f >): " << endl;
-	for (int i = 0; i < (int)P.size(); ++i)
-	{
-		cerr << "\t>>> " << P[i] << endl;
-	}
+        Vector3f c0 = (b0 + 4.0f*b1 + b2) / 6.0f;
+        Vector3f c1 = (2.0f*b1 + b2) / 3.0f;
+        Vector3f c2 = (b1 + 2.0f*b2) / 3.0f;
+        Vector3f c3 = (b1 + 4.0f*b2 + b3) / 6.0f;
 
-	cerr << "\t>>> Steps (type steps): " << steps << endl;
-	cerr << "\t>>> Returning empty curve." << endl;
+        if (i == 0) bezPts.push_back(c0);
+        bezPts.push_back(c1);
+        bezPts.push_back(c2);
+        bezPts.push_back(c3);
+    }
 
-	// Return an empty curve right now.
-	return Curve();
+	return evalBezier(bezPts, steps);
 }
 
 Curve evalCircle(float radius, unsigned steps)
@@ -134,7 +211,7 @@ void recordCurveFrames(const Curve& curve, VertexRecorder* recorder, float frame
 	const Vector3f RED(1, 0, 0);
 	const Vector3f GREEN(0, 1, 0);
 	const Vector3f BLUE(0, 0, 1);
-	
+
 	const Vector4f ORGN(0, 0, 0, 1);
 	const Vector4f AXISX(framesize, 0, 0, 1);
 	const Vector4f AXISY(0, framesize, 0, 1);
@@ -146,7 +223,7 @@ void recordCurveFrames(const Curve& curve, VertexRecorder* recorder, float frame
 		T.setCol(1, Vector4f(curve[i].B, 0));
 		T.setCol(2, Vector4f(curve[i].T, 0));
 		T.setCol(3, Vector4f(curve[i].V, 1));
- 
+
 		// Transform orthogonal frames into model space
 		Vector4f MORGN  = T * ORGN;
 		Vector4f MAXISX = T * AXISX;
@@ -164,4 +241,3 @@ void recordCurveFrames(const Curve& curve, VertexRecorder* recorder, float frame
 		recorder->record_poscolor(MAXISZ.xyz(), BLUE);
 	}
 }
-
