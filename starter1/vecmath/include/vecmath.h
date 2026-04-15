@@ -1,3 +1,10 @@
+/*
+ * vecmath.h 文件说明（中文注释版）
+ * - 这是 vecmath 模块的统一入口头文件。
+ * - 通过一次 include 引入所有向量、矩阵和四元数类型定义。
+ * - 适合在业务代码中作为公共数学库总头，减少重复 include。
+ */
+
 #ifndef VECMATH_H
 #define VECMATH_H
 
