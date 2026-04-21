@@ -47,8 +47,10 @@ void evalBezierSegment(
             Vector3f arb(0.0f, 0.0f, 1.0f);
             if (fabs(Vector3f::dot(arb, T)) > 0.99f)
                 arb = Vector3f(0.0f, 1.0f, 0.0f);
-            // Set prevB perpendicular to T
-            prevB = Vector3f::cross(arb, T).normalized();
+            // Gram-Schmidt: project arb onto the plane perpendicular to T.
+            // For a flat xy-plane curve (T.z=0), this gives prevB=(0,0,1),
+            // matching evalCircle's convention where N is in-plane and B points along z.
+            prevB = (arb - Vector3f::dot(arb, T) * T).normalized();
             firstEver = false;
         }
 
