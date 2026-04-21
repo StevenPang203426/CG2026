@@ -64,9 +64,27 @@ void evalBezierSegment(
     }
 }
 
-// Apply closed-curve correction (Slide 29-30):
-// If the curve is closed (start/end positions and tangents match),
-// linearly interpolate a rotation around T to close the frame gap.
+// Closed-curve frame correction.
+//
+// Problem: parallel transport along a closed curve can accumulate a net twist
+// alpha (the angle between first.N and last.N around T). Without correction,
+// GenCyl surfaces have a visible seam where the first and last rings meet.
+//
+// Solution (only applied when the curve is truly closed):
+//   1. Detect closure: positions AND tangents must match at both ends.
+//   2. Measure alpha = signed angle from first.N to last.N around T
+//      (positive = CCW when viewed from +T).
+//   3. Distribute a counter-rotation of -alpha linearly over all frames:
+//        theta_i = -alpha * i / (n-1)
+//      so point 0 gets 0 correction and point n-1 gets exactly -alpha,
+//      making last.N_corrected == first.N.
+//
+// Rodrigues rotation of N and B around local T by angle theta
+// (since N⊥T and B⊥T, the (k·v) term vanishes):
+//   N_rot = cos(θ)·N + sin(θ)·(T×N) = cos(θ)·N + sin(θ)·B
+//   B_rot = cos(θ)·B + sin(θ)·(T×B) = cos(θ)·B - sin(θ)·N
+//
+// Non-closed curves are unchanged (closure check returns early).
 void fixClosedCurve(Curve& curve)
 {
     if (curve.size() < 2) return;
@@ -74,27 +92,33 @@ void fixClosedCurve(Curve& curve)
     const CurvePoint& first = curve.front();
     const CurvePoint& last  = curve.back();
 
-    // Check closure: positions and tangents must approximately match
+    // Closure test: both position and tangent must coincide at the endpoints.
     const float eps = 1e-4f;
     if ((first.V - last.V).absSquared() > eps) return;
     if (fabs(Vector3f::dot(first.T, last.T) - 1.0f) > eps) return;
 
-    // Signed angle alpha from first.N to last.N around first.T
+    // Compute the signed twist angle alpha = angle from first.N to last.N
+    // measured around first.T (right-hand rule).
     float cosA = Vector3f::dot(first.N, last.N);
-    cosA = fmax(-1.0f, fmin(1.0f, cosA));
+    cosA = fmax(-1.0f, fmin(1.0f, cosA));  // clamp for numerical safety
     float sinA = Vector3f::dot(Vector3f::cross(first.N, last.N), first.T);
     float alpha = atan2(sinA, cosA);
 
-    if (fabs(alpha) < 1e-6f) return;
+    if (fabs(alpha) < 1e-6f) return;  // frames already aligned, nothing to do
 
     int total = (int)curve.size();
     for (int i = 0; i < total; i++) {
-        float theta = alpha * float(i) / float(total - 1);
+        // Counter-rotation: -alpha distributed linearly.
+        // At i=0: theta=0 (unchanged). At i=total-1: theta=-alpha (cancels twist).
+        float theta = -alpha * float(i) / float(total - 1);
         float cosT = cos(theta), sinT = sin(theta);
+
         Vector3f Ni = curve[i].N;
         Vector3f Bi = curve[i].B;
-        curve[i].N = cosT*Ni + sinT*Bi;
-        curve[i].B = -sinT*Ni + cosT*Bi;
+
+        // Rodrigues around T: N_rot = cos·N + sin·B,  B_rot = -sin·N + cos·B
+        curve[i].N =  cosT * Ni + sinT * Bi;
+        curve[i].B = -sinT * Ni + cosT * Bi;
     }
 }
 
