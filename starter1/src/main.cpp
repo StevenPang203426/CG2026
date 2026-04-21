@@ -216,13 +216,16 @@ void drawCurve()
 
 void updateMaterialUniforms(GLuint program)
 {
-    GLfloat diffColor[] = { 0.4f, 0.4f, 0.4f, 1 };
+    GLfloat diffColor[] = { 1.0f, 1.0f, 1.0f, 1 };
     GLfloat specColor[] = { 0.9f, 0.9f, 0.9f, 1 };
+    GLfloat ambColor[]  = { 0.3f, 0.3f, 0.3f, 1 };
     GLfloat shininess[] = { 50.0f };
     int loc = glGetUniformLocation(program, "diffColor");
     glUniform4fv(loc, 1, diffColor);
     loc = glGetUniformLocation(program, "specColor");
     glUniform4fv(loc, 1, specColor);
+    loc = glGetUniformLocation(program, "ambColor");
+    glUniform4fv(loc, 1, ambColor);
     loc = glGetUniformLocation(program, "shininess");
     glUniform1f(loc, shininess[0]);
 }

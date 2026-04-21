@@ -70,6 +70,7 @@ uniform vec3 camPos;
 uniform vec4 diffColor;
 uniform vec4 specColor;
 uniform float shininess;
+uniform vec4 ambColor;
 
 uniform vec4 lightPos;
 uniform vec4 lightDiff;
@@ -104,8 +105,9 @@ vec4 blinn_phong() {
     vec3 specContrib = pow(eyedotr, shininess) *
                        specColor.xyz * lightDiff.xyz / distsq;
                        
-    // 4. Add specular and diffuse contributions
-    return vec4(diffContrib + specContrib, diffColor.w);
+    // 4. Add ambient + diffuse + specular contributions
+    vec3 ambContrib = ambColor.xyz * diffColor.xyz;
+    return vec4(ambContrib + diffContrib + specContrib, diffColor.w);
 }
 
 void main () {
