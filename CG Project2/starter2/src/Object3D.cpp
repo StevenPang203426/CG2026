@@ -79,26 +79,78 @@ bool Group::intersect(const Ray &r, float tmin, Hit &h) const
 
 
 Plane::Plane(const Vector3f &normal, float d, Material *m) : Object3D(m) {
-    // TODO implement Plane constructor
+    _normal = normal.normalized();
+    _d = d;
 }
 bool Plane::intersect(const Ray &r, float tmin, Hit &h) const
 {
-    // TODO implement
+    float denom = Vector3f::dot(_normal, r.getDirection());
+    if (fabs(denom) < 1e-8f) {
+        return false; // ray parallel to plane
+    }
+    float t = (_d - Vector3f::dot(_normal, r.getOrigin())) / denom;
+    if (t > tmin && t < h.getT()) {
+        h.set(t, this->material, _normal);
+        return true;
+    }
     return false;
 }
-bool Triangle::intersect(const Ray &r, float tmin, Hit &h) const 
+bool Triangle::intersect(const Ray &r, float tmin, Hit &h) const
 {
-    // TODO implement
+    // Moller-Trumbore algorithm
+    Vector3f e1 = _v[1] - _v[0];
+    Vector3f e2 = _v[2] - _v[0];
+    Vector3f s = r.getOrigin() - _v[0];
+
+    // Solve: [-d, e1, e2] * [t, beta, gamma]^T = s
+    Matrix3f A(-r.getDirection(), e1, e2, true); // columns
+    float detA = A.determinant();
+    if (fabs(detA) < 1e-8f) {
+        return false;
+    }
+    Vector3f x = A.inverse() * s;
+
+    float t = x[0];
+    float beta = x[1];
+    float gamma = x[2];
+
+    if (beta < 0 || gamma < 0 || beta + gamma > 1) {
+        return false;
+    }
+    if (t > tmin && t < h.getT()) {
+        float alpha = 1.0f - beta - gamma;
+        Vector3f normal = (alpha * _normals[0] + beta * _normals[1] + gamma * _normals[2]).normalized();
+        h.set(t, this->material, normal);
+        return true;
+    }
     return false;
 }
 
 
 Transform::Transform(const Matrix4f &m,
     Object3D *obj) : _object(obj) {
-    // TODO implement Transform constructor
+    _m = m;
+    _m_inv = m.inverse();
 }
 bool Transform::intersect(const Ray &r, float tmin, Hit &h) const
 {
-    // TODO implement
+    // Transform ray from world to local coordinates
+    Vector4f origin4(_m_inv * Vector4f(r.getOrigin(), 1.0f));
+    Vector4f dir4(_m_inv * Vector4f(r.getDirection(), 0.0f));
+
+    Vector3f localOrigin = origin4.xyz();
+    Vector3f localDir = dir4.xyz();
+
+    Ray localRay(localOrigin, localDir);
+
+    if (_object->intersect(localRay, tmin, h)) {
+        // Transform normal back to world coordinates
+        // Normal transforms by inverse-transpose of M
+        Vector3f localNormal = h.getNormal();
+        Vector4f worldNormal4 = _m_inv.transposed() * Vector4f(localNormal, 0.0f);
+        Vector3f worldNormal = worldNormal4.xyz().normalized();
+        h.set(h.getT(), h.getMaterial(), worldNormal);
+        return true;
+    }
     return false;
 }

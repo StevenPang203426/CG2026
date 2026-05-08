@@ -7,6 +7,8 @@
 #include "VecUtils.h"
 
 #include <limits>
+#include <cstdlib>
+#include <cmath>
 
 
 Renderer::Renderer(const ArgParser &args) :
@@ -20,40 +22,89 @@ Renderer::Render()
 {
     int w = _args.width;
     int h = _args.height;
+    Camera* cam = _scene.getCamera();
 
-    Image image(w, h);
+    // Determine render resolution (upscale for filter)
+    int k = _args.filter ? 3 : 1;
+    int rw = w * k;
+    int rh = h * k;
+
+    Image renderImage(rw, rh);
     Image nimage(w, h);
     Image dimage(w, h);
 
-    // loop through all the pixels in the image
-    // generate all the samples
+    int numSamples = _args.jitter ? 16 : 1;
+    float pixelW = 2.0f / (rw - 1.0f);
+    float pixelH = 2.0f / (rh - 1.0f);
 
-    // This look generates camera rays and callse traceRay.
-    // It also write to the color, normal, and depth images.
-    // You should understand what this code does.
-    Camera* cam = _scene.getCamera();
-    for (int y = 0; y < h; ++y) {
-        float ndcy = 2 * (y / (h - 1.0f)) - 1.0f;
-        for (int x = 0; x < w; ++x) {
-            float ndcx = 2 * (x / (w - 1.0f)) - 1.0f;
-            // Use PerspectiveCamera to generate a ray.
-            // You should understand what generateRay() does.
-            Ray r = cam->generateRay(Vector2f(ndcx, ndcy));
+    for (int y = 0; y < rh; ++y) {
+        float ndcy = 2.0f * (y / (rh - 1.0f)) - 1.0f;
+        for (int x = 0; x < rw; ++x) {
+            float ndcx = 2.0f * (x / (rw - 1.0f)) - 1.0f;
 
-            Hit h;
-            Vector3f color = traceRay(r, cam->getTMin(), _args.bounces, h);
+            Vector3f color(0, 0, 0);
+            Vector3f normalAccum(0, 0, 0);
+            float depthAccum = 0;
 
-            image.setPixel(x, y, color);
-            nimage.setPixel(x, y, (h.getNormal() + 1.0f) / 2.0f);
-            float range = (_args.depth_max - _args.depth_min);
-            if (range) {
-                dimage.setPixel(x, y, Vector3f((h.t - _args.depth_min) / range));
+            for (int s = 0; s < numSamples; ++s) {
+                float jx = ndcx;
+                float jy = ndcy;
+                if (_args.jitter) {
+                    // Random offset within [-0.5, 0.5] pixel width
+                    jx += ((float)rand() / RAND_MAX - 0.5f) * pixelW;
+                    jy += ((float)rand() / RAND_MAX - 0.5f) * pixelH;
+                }
+                Ray r = cam->generateRay(Vector2f(jx, jy));
+                Hit hit;
+                color += traceRay(r, cam->getTMin(), _args.bounces, hit);
+                normalAccum += hit.getNormal();
+                depthAccum += hit.getT();
+            }
+
+            color = color / (float)numSamples;
+            renderImage.setPixel(x, y, color);
+
+            // Normal and depth only at output resolution (non-upscaled coords)
+            if (k == 1) {
+                nimage.setPixel(x, y, (normalAccum / (float)numSamples + 1.0f) / 2.0f);
+                float range = (_args.depth_max - _args.depth_min);
+                if (range) {
+                    dimage.setPixel(x, y, Vector3f((depthAccum / (float)numSamples - _args.depth_min) / range));
+                }
             }
         }
     }
-    // END SOLN
 
-    // save the files 
+    // Downsample with Gaussian filter if enabled
+    Image image(w, h);
+    if (_args.filter) {
+        // 3x3 Gaussian kernel (sigma=1), weights: 1 2 1 / 2 4 2 / 1 2 1, sum=16
+        float kernel[3][3] = {
+            {1.0f/16, 2.0f/16, 1.0f/16},
+            {2.0f/16, 4.0f/16, 2.0f/16},
+            {1.0f/16, 2.0f/16, 1.0f/16}
+        };
+        for (int y = 0; y < h; ++y) {
+            for (int x = 0; x < w; ++x) {
+                Vector3f sum(0, 0, 0);
+                // Center of the k x k block
+                int cx = x * k + k / 2;
+                int cy = y * k + k / 2;
+                for (int dy = -1; dy <= 1; ++dy) {
+                    for (int dx = -1; dx <= 1; ++dx) {
+                        int sx = std::min(std::max(cx + dx, 0), rw - 1);
+                        int sy = std::min(std::max(cy + dy, 0), rh - 1);
+                        sum += kernel[dy + 1][dx + 1] * renderImage.getPixel(sx, sy);
+                    }
+                }
+                image.setPixel(x, y, sum);
+            }
+        }
+    } else {
+        image = renderImage;
+    }
+
+    // save the files
     if (_args.output_file.size()) {
         image.savePNG(_args.output_file);
     }
@@ -76,11 +127,47 @@ Renderer::traceRay(const Ray &r,
     // The starter code only implements basic drawing of sphere primitives.
     // You will implement phong shading, recursive ray tracing, and shadow rays.
 
-    // TODO: IMPLEMENT 
     if (_scene.getGroup()->intersect(r, tmin, h)) {
-        return h.getMaterial()->getDiffuseColor();
+        Material *material = h.getMaterial();
+        Vector3f hitPoint = r.pointAtParameter(h.getT());
+
+        // Ambient light
+        Vector3f color = _scene.getAmbientLight() * material->getDiffuseColor();
+
+        // Iterate over all lights
+        for (int i = 0; i < _scene.lights.size(); ++i) {
+            Vector3f toLight, intensity;
+            float distToLight;
+            _scene.lights[i]->getIllumination(hitPoint, toLight, intensity, distToLight);
+
+            // Shadow ray
+            if (_args.shadows) {
+                Ray shadowRay(hitPoint + 0.001f * toLight, toLight);
+                Hit shadowHit;
+                if (_scene.getGroup()->intersect(shadowRay, 0.0f, shadowHit)) {
+                    if (shadowHit.getT() < distToLight) {
+                        continue; // in shadow, skip this light
+                    }
+                }
+            }
+
+            color += material->shade(r, h, toLight, intensity);
+        }
+
+        // Recursive reflection
+        if (bounces > 0) {
+            Vector3f N = h.getNormal().normalized();
+            Vector3f d = r.getDirection().normalized();
+            Vector3f R = (d - 2.0f * Vector3f::dot(d, N) * N).normalized();
+            Ray reflectRay(hitPoint + 0.001f * R, R);
+            Hit reflectHit;
+            Vector3f reflectColor = traceRay(reflectRay, 0.0f, bounces - 1, reflectHit);
+            color += material->getSpecularColor() * reflectColor;
+        }
+
+        return color;
     } else {
-        return Vector3f(0, 0, 0);
-    };
+        return _scene.getBackgroundColor(r.getDirection());
+    }
 }
 
