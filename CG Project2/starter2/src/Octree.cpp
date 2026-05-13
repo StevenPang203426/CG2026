@@ -2,7 +2,7 @@
 #include "Vector3f.h"
 #include "Mesh.h"
 #include "Octree.h"
-
+#include <cstdint>
 #include <vector>
 
 ///@brief two intervals intersect

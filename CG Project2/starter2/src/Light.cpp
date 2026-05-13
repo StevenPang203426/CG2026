@@ -21,6 +21,7 @@
         Vector3f dir = _position - p;
         distToLight = dir.abs();
         tolight = dir.normalized();
-        intensity = _color / (1.0f + _falloff * distToLight * distToLight);
+        // L(x_out) = I / (α * d²)
+        intensity = _color / (_falloff * distToLight * distToLight);
     }
 

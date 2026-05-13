@@ -1,6 +1,6 @@
 #ifndef OCTREE_HPP
 #define OCTREE_HPP
-
+#include <cstdint> 
 class Mesh;
 
 struct Box
